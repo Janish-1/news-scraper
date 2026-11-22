@@ -1,11 +1,36 @@
 import csv
+import os
+import tempfile
+from pathlib import Path
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.firefox import GeckoDriverManager
+from selenium.common.exceptions import WebDriverException
+
+
+firefox_profile_temp = Path.home() / '.cache' / 'news-scraper' / 'firefox-profiles'
+firefox_profile_temp.mkdir(parents=True, exist_ok=True)
+os.environ['TMPDIR'] = str(firefox_profile_temp)
+tempfile.tempdir = str(firefox_profile_temp)
 
 # Start a Selenium webdriver with Firefox using GeckoDriverManager to manage the driver
-driver = webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()))
+try:
+    firefox_options = FirefoxOptions()
+    firefox_options.add_argument('--headless')
+    driver = webdriver.Firefox(
+        service=FirefoxService(GeckoDriverManager().install()),
+        options=firefox_options,
+    )
+except WebDriverException as firefox_error:
+    print(f"Firefox could not start ({firefox_error}). Falling back to Chrome.")
+    chrome_options = ChromeOptions()
+    chrome_options.add_argument('--headless=new')
+    chrome_options.add_argument('--disable-gpu')
+    driver = webdriver.Chrome(options=chrome_options)
 driver.implicitly_wait(5)
 
 # URL of the news website you want to scrape
